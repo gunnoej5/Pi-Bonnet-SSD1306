@@ -12,6 +12,10 @@ A Python-based system monitor that displays real-time system information on an A
 - **CPU Monitor Screen**: Temperature (°C/°F), CPU usage percentage, load average
 - **Disk Usage Screen**: Total/used/free space with visual usage bar
 
+![System Monitor Demo](images/1.jpg)
+![Screen 2](images/2.jpg)
+![Screen 3](images/3.jpg)
+
 ### 🎮 Interactive Navigation
 - **Left/Right Buttons**: Navigate between screens
 - **Center Button**: Toggle auto-advance mode
