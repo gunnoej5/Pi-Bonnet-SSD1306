@@ -1,3 +1,3 @@
 # Pi-Bonnet-SSD1306
 
-Go to the MAster branch.
+Go to the Master branch.
