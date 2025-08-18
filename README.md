@@ -11,11 +11,13 @@ A Python-based system monitor that displays real-time system information on an A
 - **IP Address Screen**: System IP, hostname, current time, auto-advance status
 - **CPU Monitor Screen**: Temperature (°C/°F), CPU usage percentage, load average
 - **Disk Usage Screen**: Total/used/free space with visual usage bar
+- **Command Menu Screen**: Navigate and execute shell commands.
 
 ### 🎮 Interactive Navigation
 - **Left/Right Buttons**: Navigate between screens
-- **Center Button**: Toggle auto-advance mode
-- **Auto-advance**: Automatically cycles through screens every 10 seconds
+- **Up/Down Buttons**: Navigate the command menu
+- **Center Button**: Execute commands
+- **Auto-advance**: Automatically cycles through information screens every 10 seconds
 
 ### ⚙️ System Integration
 - **Systemd Service**: Auto-start on boot with automatic restart on failure
@@ -29,9 +31,11 @@ A Python-based system monitor that displays real-time system information on an A
 - I2C interface enabled
 
 ### GPIO Pin Mapping (Adafruit SSD1306 Bonnet)
+- GPIO 5 (Button A): Navigate Up (in command menu)
+- GPIO 6 (Button B): Navigate Down (in command menu)
 - GPIO 27 (Left Button): Previous screen
 - GPIO 23 (Right Button): Next screen  
-- GPIO 4 (Center Button): Toggle auto-advance
+- GPIO 4 (Center Button): Execute command (in command menu)
 
 ## Installation
 
@@ -128,12 +132,12 @@ sudo systemctl status ip-display.service
 ## Usage
 
 ### Button Controls
-- **Left Button**: Navigate to previous screen
-- **Right Button**: Navigate to next screen
-- **Center Button**: Toggle between auto-advance and manual mode
+- **Left/Right Buttons**: Navigate between screens.
+- **Up/Down Buttons**: In the command menu, navigate the command list.
+- **Center Button**: In the command menu, execute the selected command.
 
 ### Auto-Advance Mode
-- **Enabled**: Automatically cycles through screens every 10 seconds
+- **Enabled**: Automatically cycles through information screens every 10 seconds
 - **Disabled**: Manual navigation only
 - **Smart Pause**: Auto-advance pauses when buttons are pressed
 
@@ -155,6 +159,10 @@ sudo systemctl status ip-display.service
 - Used disk space
 - Free disk space
 - Usage percentage with visual bar
+
+#### Screen 4: Command Menu
+- Navigate a list of predefined shell commands.
+- Execute commands with the press of a button.
 
 ## Service Management
 
@@ -211,9 +219,21 @@ self.auto_advance_interval = 10  # Screen change interval (seconds)
 ### Change GPIO Pin Assignments
 Update these constants for different button mappings:
 ```python
+self.BUTTON_A = 5   # Up button
+self.BUTTON_B = 6   # Down button  
 self.BUTTON_L = 27  # Left button (previous screen)
 self.BUTTON_R = 23  # Right button (next screen)
-self.BUTTON_C = 4   # Center button (toggle auto-advance)
+self.BUTTON_C = 4   # Center button (execute)
+```
+
+### Customize Commands
+Edit the `self.commands` list in the script to add, remove, or modify commands and their labels.
+```python
+self.commands = [
+    ("Restart", "sudo reboot"),
+    ("Shutdown", "sudo shutdown -h now"),
+    # Add more commands here
+]
 ```
 
 ### Add Custom Screens
