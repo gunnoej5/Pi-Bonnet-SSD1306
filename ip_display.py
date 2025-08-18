@@ -25,7 +25,7 @@ except ImportError:
 class SystemMonitor:
     def __init__(self):
         self.current_screen = 0
-        self.total_screens = 3
+        self.total_screens = 4  # Added command screen
         self.last_update = 0
         self.update_interval = 5  # Update every 5 seconds
         self.auto_advance = True
@@ -37,7 +37,17 @@ class SystemMonitor:
         self.BUTTON_B = 6   # Down button  
         self.BUTTON_L = 27  # Left button (previous screen)
         self.BUTTON_R = 23  # Right button (next screen)
-        self.BUTTON_C = 4   # Center button (toggle auto-advance)
+        self.BUTTON_C = 4   # Center button (execute)
+        
+        self.commands = [
+            ("Restart", "sudo reboot"),
+            ("Shutdown", "sudo shutdown -h now")
+        ]
+        self.selected_command = 0
+
+        self.device = None
+        self.font = None
+        self.small_font = None
         
         self.setup_buttons()
         
@@ -58,12 +68,49 @@ class SystemMonitor:
             # Add event detection for buttons
             GPIO.add_event_detect(self.BUTTON_L, GPIO.FALLING, callback=self.prev_screen, bouncetime=300)
             GPIO.add_event_detect(self.BUTTON_R, GPIO.FALLING, callback=self.next_screen, bouncetime=300)
-            GPIO.add_event_detect(self.BUTTON_C, GPIO.FALLING, callback=self.toggle_auto_advance, bouncetime=300)
+            GPIO.add_event_detect(self.BUTTON_A, GPIO.FALLING, callback=self.prev_command, bouncetime=300)
+            GPIO.add_event_detect(self.BUTTON_B, GPIO.FALLING, callback=self.next_command, bouncetime=300)
+            GPIO.add_event_detect(self.BUTTON_C, GPIO.FALLING, callback=self.execute_command, bouncetime=300)
             
             print("Button navigation enabled")
         except Exception as e:
             print(f"Error setting up buttons: {e}")
-            
+
+    def prev_command(self, channel=None):
+        """Go to previous command in the list"""
+        if self.current_screen == 3:  # Only in command screen
+            self.selected_command = (self.selected_command - 1) % len(self.commands)
+            self.last_button_press = time.time()
+            print(f"Selected command: {self.commands[self.selected_command][0]}")
+
+    def next_command(self, channel=None):
+        """Go to next command in the list"""
+        if self.current_screen == 3:  # Only in command screen
+            self.selected_command = (self.selected_command + 1) % len(self.commands)
+            self.last_button_press = time.time()
+            print(f"Selected command: {self.commands[self.selected_command][0]}")
+
+    def execute_command(self, channel=None):
+        """Execute the selected command"""
+        if self.current_screen == 3:  # Only in command screen
+            command_label, command = self.commands[self.selected_command]
+            print(f"Executing command: {command_label}")
+            try:
+                # Display "Executing..." message
+                with canvas(self.device) as draw:
+                    draw.text((2, 2), "Executing...", font=self.font, fill="white")
+                    draw.text((2, 16), command_label, font=self.small_font, fill="white")
+                
+                # Execute the command
+                subprocess.run(command.split(), check=True)
+            except Exception as e:
+                print(f"Error executing command: {e}")
+                # Display error message
+                with canvas(self.device) as draw:
+                    draw.text((2, 2), "Error:", font=self.font, fill="white")
+                    draw.text((2, 16), str(e), font=self.small_font, fill="white")
+                time.sleep(3)
+
     def prev_screen(self, channel=None):
         """Go to previous screen"""
         self.current_screen = (self.current_screen - 1) % self.total_screens
@@ -75,12 +122,6 @@ class SystemMonitor:
         self.current_screen = (self.current_screen + 1) % self.total_screens
         self.last_button_press = time.time()
         print(f"Switched to screen {self.current_screen}")
-        
-    def toggle_auto_advance(self, channel=None):
-        """Toggle automatic screen advancement"""
-        self.auto_advance = not self.auto_advance
-        self.last_button_press = time.time()
-        print(f"Auto-advance {'enabled' if self.auto_advance else 'disabled'}")
 
     def get_ip_address(self):
         """Get the system's IP address"""
@@ -152,7 +193,7 @@ class SystemMonitor:
         hostname = socket.gethostname()
         current_time = time.strftime("%H:%M:%S")
         
-        draw.text((2, 2), "System IP (1/3):", font=small_font, fill="white")
+        draw.text((2, 2), "System IP (1/4):", font=small_font, fill="white")
         draw.text((2, 16), ip_address, font=font, fill="white")
         draw.text((2, 30), f"Host: {hostname[:16]}", font=small_font, fill="white")
         draw.text((2, 42), f"Time: {current_time}", font=small_font, fill="white")
@@ -177,7 +218,7 @@ class SystemMonitor:
         except:
             load_1min = 0.0
             
-        draw.text((2, 2), "CPU Info (2/3):", font=small_font, fill="white")
+        draw.text((2, 2), "CPU Info (2/4):", font=small_font, fill="white")
         
         if temp_c is not None:
             draw.text((2, 16), f"Temp: {temp_c:.1f}°C", font=font, fill="white")
@@ -192,7 +233,7 @@ class SystemMonitor:
         """Draw disk usage screen"""
         total_gb, used_gb, free_gb, percent = self.get_disk_usage()
         
-        draw.text((2, 2), "Disk Usage (3/3):", font=small_font, fill="white")
+        draw.text((2, 2), "Disk Usage (3/4):", font=small_font, fill="white")
         
         if total_gb is not None:
             draw.text((2, 16), f"Total: {total_gb:.1f} GB", font=small_font, fill="white")
@@ -218,17 +259,28 @@ class SystemMonitor:
         else:
             draw.text((2, 16), "Disk info N/A", font=font, fill="white")
 
+    def draw_command_screen(self, draw, font, small_font):
+        """Draw command menu screen"""
+        draw.text((2, 2), "Commands (4/4):", font=small_font, fill="white")
+        
+        for i, (label, cmd) in enumerate(self.commands):
+            if i == self.selected_command:
+                draw.rectangle([0, 14 + (i * 12), 127, 26 + (i * 12)], fill="white")
+                draw.text((2, 16 + (i * 12)), f"> {label}", font=small_font, fill="black")
+            else:
+                draw.text((2, 16 + (i * 12)), f"  {label}", font=small_font, fill="white")
+
     def run(self):
         """Main display loop"""
         # Initialize I2C interface and OLED display
         try:
             serial = i2c(port=1, address=0x3C)
-            device = ssd1306(serial, width=128, height=64)
+            self.device = ssd1306(serial, width=128, height=64)
             print("OLED initialized successfully on address 0x3C")
         except Exception as e:
             try:
                 serial = i2c(port=1, address=0x3D)
-                device = ssd1306(serial, width=128, height=64)
+                self.device = ssd1306(serial, width=128, height=64)
                 print("OLED initialized successfully on address 0x3D")
             except Exception as e2:
                 print(f"Error initializing OLED: {e}")
@@ -237,18 +289,18 @@ class SystemMonitor:
         
         # Load fonts
         try:
-            font = ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf", 11)
-            small_font = ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf", 9)
+            self.font = ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf", 11)
+            self.small_font = ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf", 9)
         except:
             try:
-                font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf", 11)
-                small_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf", 9)
+                self.font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf", 11)
+                self.small_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf", 9)
             except:
-                font = ImageFont.load_default()
-                small_font = ImageFont.load_default()
+                self.font = ImageFont.load_default()
+                self.small_font = ImageFont.load_default()
         
         print("Starting multi-screen display...")
-        print("Buttons: Left/Right = navigate, Center = toggle auto-advance")
+        print("Buttons: Left/Right = navigate, Up/Down = command menu, Center = execute")
         print("Press Ctrl+C to exit")
         
         try:
@@ -256,32 +308,35 @@ class SystemMonitor:
                 current_time = time.time()
                 
                 # Auto-advance screens if enabled and no recent button press
-                if (self.auto_advance and 
+                if (self.auto_advance and self.current_screen != 3 and
                     current_time - self.last_button_press > self.auto_advance_interval):
                     self.current_screen = (self.current_screen + 1) % self.total_screens
                     self.last_button_press = current_time
                 
                 # Update display
-                with canvas(device) as draw:
+                with canvas(self.device) as draw:
                     # Draw border
-                    draw.rectangle([0, 0, device.width-1, device.height-1], 
+                    draw.rectangle([0, 0, self.device.width-1, self.device.height-1], 
                                  outline="white", fill=None)
                     
                     # Draw current screen
                     if self.current_screen == 0:
-                        self.draw_ip_screen(draw, font, small_font)
+                        self.draw_ip_screen(draw, self.font, self.small_font)
                     elif self.current_screen == 1:
-                        self.draw_cpu_screen(draw, font, small_font)
+                        self.draw_cpu_screen(draw, self.font, self.small_font)
                     elif self.current_screen == 2:
-                        self.draw_disk_screen(draw, font, small_font)
+                        self.draw_disk_screen(draw, self.font, self.small_font)
+                    elif self.current_screen == 3:
+                        self.draw_command_screen(draw, self.font, self.small_font)
                 
                 time.sleep(1)  # Update every second for responsive button presses
                 
         except KeyboardInterrupt:
             print("\nExiting...")
-            device.clear()
+            self.device.clear()
             if GPIO_AVAILABLE:
                 GPIO.cleanup()
+
 
 def main():
     monitor = SystemMonitor()
