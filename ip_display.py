@@ -33,8 +33,8 @@ class SystemMonitor:
         self.last_button_press = time.time()
         
         # Button GPIO pins for Adafruit bonnet (adjust if different)
-        self.BUTTON_A = 5   # Up button
-        self.BUTTON_B = 6   # Down button  
+        self.BUTTON_A = 17   # Up button
+        self.BUTTON_B = 22   # Down button  
         self.BUTTON_L = 27  # Left button (previous screen)
         self.BUTTON_R = 23  # Right button (next screen)
         self.BUTTON_C = 4   # Center button (execute)

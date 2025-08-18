@@ -31,8 +31,8 @@ A Python-based system monitor that displays real-time system information on an A
 - I2C interface enabled
 
 ### GPIO Pin Mapping (Adafruit SSD1306 Bonnet)
-- GPIO 5 (Button A): Navigate Up (in command menu)
-- GPIO 6 (Button B): Navigate Down (in command menu)
+- GPIO 17 (Button A): Navigate Up (in command menu)
+- GPIO 22 (Button B): Navigate Down (in command menu)
 - GPIO 27 (Left Button): Previous screen
 - GPIO 23 (Right Button): Next screen  
 - GPIO 4 (Center Button): Execute command (in command menu)
